@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dompet Siklus 4 Minggu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Animasi sederhana saat saldo bertambah */
+        .pop { animation: pop 0.3s ease-in-out; }
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen p-4 md:p-8">
+
+    <div class="max-w-md mx-auto bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100">
+        <div class="bg-blue-600 p-6 text-white text-center">
+            <h1 class="text-xl font-bold mb-1">Tracker Gaji Mingguan</h1>
+            <p class="text-blue-200 text-sm">Sistem Siklus 4 Minggu</p>
+            <div class="mt-4">
+                <p class="text-sm opacity-80">Total Uang di Dompet/Rekening</p>
+                <h2 class="text-3xl font-extrabold tracking-tight mt-1" id="totalBalance">Rp 0</h2>
+            </div>
+        </div>
+
+        <div class="p-6">
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="font-semibold text-slate-700">Progress Siklus</h3>
+                    <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full font-medium" id="weekBadge">Minggu ke-0</span>
+                </div>
+                <div class="flex gap-2 mb-3" id="weekIndicators">
+                    </div>
+                <button onclick="addSalary()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-sm transition-all flex justify-center items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                    </svg>
+                    Input Gaji (Rp 475.000)
+                </button>
+            </div>
+
+            <hr class="border-slate-200 mb-6">
+
+            <div class="mb-4 flex justify-between items-center">
+                <h3 class="font-semibold text-slate-700">Rincian Pos Uang</h3>
+            </div>
+            
+            <div id="budgetsList" class="space-y-3">
+                </div>
+
+            <div class="mt-8 pt-4 border-t border-slate-100 text-center">
+                <button onclick="resetCycle()" class="text-sm text-red-500 hover:text-red-700 font-medium">
+                    Reset Ulang Siklus & Saldo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Konfigurasi Alokasi Mingguan
+        const budgetConfig = [
+            { id: 'nabung', name: 'Nabung', weekly: 50000 },
+            { id: 'hutang', name: 'Hutang Pacar', weekly: 50000 },
+            { id: 'wifi', name: 'Wifi (Tgl 26)', weekly: 59000 },
+            { id: 'kredivo', name: 'Kredivo (Tgl 2)', weekly: 111000 },
+            { id: 'jajan', name: 'Uang Jajan', weekly: 100000 },
+            { id: 'vape', name: 'Utilitas Vape (Tgl 30)', weekly: 45000 },
+            { id: 'jaga', name: 'Jaga-jaga', weekly: 60000 }
+        ];
+
+        // Inisialisasi State dari localStorage atau default
+        let state = JSON.parse(localStorage.getItem('financeTrackerState')) || {
+            currentWeek: 0,
+            balances: budgetConfig.reduce((acc, item) => ({ ...acc, [item.id]: 0 }), {})
+        };
+
+        // Format Rupiah
+        const formatRp = (angka) => {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+        };
+
+        // Simpan ke localStorage
+        const saveState = () => {
+            localStorage.setItem('financeTrackerState', JSON.stringify(state));
+            render();
+        };
+
+        // Fungsi tambah gaji (Klik Input Gaji)
+        const addSalary = () => {
+            if (state.currentWeek >= 4) {
+                const isBonus = confirm("Siklus 4 minggu sudah penuh! Apakah ini gaji minggu ke-5 (Uang Bonus)?\n\nJika YA, uang Rp 475.000 akan masuk ke pos 'Jaga-jaga / Bebas'.");
+                if (isBonus) {
+                    state.balances['jaga'] += 475000;
+                    state.currentWeek++;
+                    saveState();
+                }
+                return;
+            }
+
+            // Tambah saldo ke masing-masing pos sesuai jatah mingguan
+            budgetConfig.forEach(item => {
+                state.balances[item.id] += item.weekly;
+            });
+            
+            state.currentWeek++;
+            saveState();
+        };
+
+        // Fungsi kurangi saldo (Saat dipakai bayar/jajan)
+        const spendMoney = (id, name) => {
+            const currentBalance = state.balances[id];
+            if (currentBalance <= 0) {
+                alert(`Saldo ${name} masih kosong!`);
+                return;
+            }
+
+            const amountStr = prompt(`Saldo ${name}: ${formatRp(currentBalance)}\nBerapa nominal yang terpakai/dibayarkan? (Ketik angka saja)`);
+            if (amountStr === null || amountStr.trim() === '') return; // Cancel
+
+            const amount = parseInt(amountStr.replace(/[^0-9]/g, ''));
+            if (isNaN(amount) || amount <= 0) {
+                alert("Nominal tidak valid!");
+                return;
+            }
+
+            if (amount > currentBalance) {
+                alert("Peringatan: Nominal yang dimasukkan melebihi saldo yang ada!");
+                return;
+            }
+
+            state.balances[id] -= amount;
+            saveState();
+        };
+
+        // Reset Total
+        const resetCycle = () => {
+            if (confirm("Yakin ingin mereset seluruh siklus dan menghapus semua saldo menjadi Rp 0?")) {
+                state.currentWeek = 0;
+                budgetConfig.forEach(item => {
+                    state.balances[item.id] = 0;
+                });
+                saveState();
+            }
+        };
+
+        // Render UI
+        const render = () => {
+            // Hitung Total Saldo
+            const total = Object.values(state.balances).reduce((a, b) => a + b, 0);
+            document.getElementById('totalBalance').innerText = formatRp(total);
+            
+            // Update Text Badge Minggu
+            const weekBadge = document.getElementById('weekBadge');
+            if(state.currentWeek > 4) {
+                weekBadge.innerText = `Minggu ke-${state.currentWeek} (Bonus)`;
+                weekBadge.className = "text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium";
+            } else {
+                weekBadge.innerText = `Minggu ke-${state.currentWeek} dari 4`;
+                weekBadge.className = "text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full font-medium";
+            }
+
+            // Render Indikator Minggu (M1 - M4)
+            const indicatorsHTML = Array.from({length: 4}).map((_, i) => {
+                const isFilled = i < state.currentWeek;
+                return `
+                    <div class="flex-1 h-2 rounded-full ${isFilled ? 'bg-blue-500' : 'bg-slate-200'} transition-all duration-300"></div>
+                `;
+            }).join('');
+            document.getElementById('weekIndicators').innerHTML = indicatorsHTML;
+
+            // Render List Pos Uang
+            const listHTML = budgetConfig.map(item => {
+                const balance = state.balances[item.id];
+                const monthlyTarget = item.weekly * 4;
+                const percentage = Math.min((balance / monthlyTarget) * 100, 100);
+                
+                return `
+                    <div class="bg-white border border-slate-200 p-3 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-medium text-slate-700 text-sm">${item.name}</span>
+                            <span class="font-bold text-slate-800">${formatRp(balance)}</span>
+                        </div>
+                        <div class="flex justify-between items-center mt-2 gap-3">
+                            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-blue-500 h-full" style="width: ${percentage}%"></div>
+                            </div>
+                            <button onclick="spendMoney('${item.id}', '${item.name}')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1 rounded-lg font-medium transition-colors whitespace-nowrap">
+                                Pakai
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('budgetsList').innerHTML = listHTML;
+        };
+
+        // Jalankan render pertama kali
+        render();
+    </script>
+</body>
+</html>
+
