@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dompet Minimalis V5</title>
+    <title>Dompet Minimalis V6</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 min-h-screen p-4 md:p-8">
 
     <div class="max-w-md mx-auto bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100">
         <div class="bg-indigo-900 p-6 text-white text-center">
-            <h1 class="text-xl font-bold mb-1">Manajer Keuangan</h1>
+            <h1 class="text-xl font-bold mb-1">Manajer Keuangan Faisal</h1>
             <div class="mt-4 bg-white/10 rounded-xl p-4 border border-white/20">
                 <p class="text-sm opacity-80 mb-1">Dana Belum Dialokasikan</p>
                 <h2 class="text-3xl font-extrabold tracking-tight" id="unallocatedBalance">Rp 0</h2>
-                <button onclick="addSalary()" class="mt-4 w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all text-sm">
+                <button onclick="addSalary()" class="mt-4 w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all text-sm text-white">
                     + Input Uang Masuk (Nominal)
                 </button>
             </div>
@@ -47,14 +47,16 @@
             { id: 'jaga', name: 'Jaga-jaga', target: 240000, suggest: 60000 }
         ];
 
-        // Mempertahankan key V3 agar data saldo yang sudah diinput tidak hangus
         let state = JSON.parse(localStorage.getItem('financeTrackerV3')) || {
             unallocated: 0,
             balances: budgetConfig.reduce((acc, item) => ({ ...acc, [item.id]: 0 }), {})
         };
 
         const formatRp = (angka) => {
-            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+            const isNegative = angka < 0;
+            const absoluteValue = Math.abs(angka);
+            const formatted = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(absoluteValue);
+            return isNegative ? `-${formatted}` : formatted;
         };
 
         const saveState = () => {
@@ -65,14 +67,8 @@
         const addSalary = () => {
             const amountStr = prompt("Masukkan nominal uang yang diterima:");
             if (!amountStr) return;
-
             const amount = parseInt(amountStr.replace(/[^0-9]/g, ''));
-            
-            if (isNaN(amount) || amount <= 0) {
-                alert("Masukkan nominal angka yang valid.");
-                return;
-            }
-
+            if (isNaN(amount) || amount <= 0) return;
             state.unallocated += amount;
             saveState();
         };
@@ -82,21 +78,14 @@
                 alert("Dana belum dialokasikan kosong.");
                 return;
             }
-
-            const amountStr = prompt(
-                `Isi pos ${name}\nDana tersedia: ${formatRp(state.unallocated)}\nSaran nominal (mingguan):`, 
-                suggest
-            );
+            const amountStr = prompt(`Isi pos ${name}\nDana tersedia: ${formatRp(state.unallocated)}\nSaran nominal:`, suggest);
             if (!amountStr) return;
-
             const amount = parseInt(amountStr.replace(/[^0-9]/g, ''));
             if (isNaN(amount) || amount <= 0) return;
-
             if (amount > state.unallocated) {
                 alert("Uang tidak cukup!");
                 return;
             }
-
             state.unallocated -= amount;
             state.balances[id] += amount;
             saveState();
@@ -105,15 +94,12 @@
         const spendMoney = (id, name) => {
             const amountStr = prompt(`Gunakan saldo ${name}?\nSaldo saat ini: ${formatRp(state.balances[id])}\nMasukkan nominal:`);
             if (!amountStr) return;
-
             const amount = parseInt(amountStr.replace(/[^0-9]/g, ''));
             if (isNaN(amount) || amount <= 0) return;
-
             if (amount > state.balances[id]) {
                 alert("Saldo pos tidak cukup!");
                 return;
             }
-
             state.balances[id] -= amount;
             saveState();
         };
@@ -131,6 +117,7 @@
 
             const listHTML = budgetConfig.map(item => {
                 const balance = state.balances[item.id];
+                const remaining = item.target - balance;
                 const percentage = Math.min((balance / item.target) * 100, 100);
                 const barColor = balance >= item.target ? 'bg-emerald-500' : 'bg-indigo-500';
 
@@ -140,17 +127,19 @@
                             <div>
                                 <h4 class="font-bold text-slate-800 text-sm">${item.name}</h4>
                                 <span class="text-[10px] font-medium text-slate-400 mt-0.5 inline-block">
-                                    Saran setor: ${formatRp(item.suggest)}
+                                    Saran: ${formatRp(item.suggest)}
                                 </span>
                             </div>
-                            <div class="text-right group-hover:opacity-0 transition-opacity duration-300">
+                            <div class="text-right transition-opacity duration-300">
                                 <span class="font-bold text-slate-700 text-sm">${formatRp(balance)}</span>
                             </div>
                         </div>
                         
                         <div class="relative flex flex-col justify-end">
                             <div class="absolute bottom-full right-0 mb-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0 flex items-center gap-1">
-                                <span class="font-bold text-slate-800 text-[11px]">${formatRp(balance)}</span>
+                                <span class="font-bold ${remaining > 0 ? 'text-red-500' : 'text-emerald-600'} text-[11px]">
+                                    ${remaining > 0 ? '-' + formatRp(remaining) : 'Lunas'}
+                                </span>
                                 <span class="text-[10px] text-slate-400 font-medium">/ ${formatRp(item.target)}</span>
                             </div>
                             
