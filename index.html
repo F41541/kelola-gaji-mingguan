@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dompet Nominal Fleksibel</title>
+    <title>Dompet Nominal Fleksibel V4</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 min-h-screen p-4 md:p-8">
@@ -22,7 +22,7 @@
 
         <div class="p-6">
             <div class="mb-4 flex justify-between items-center">
-                <h3 class="font-semibold text-slate-700">Alokasi Pos (Target Bulanan)</h3>
+                <h3 class="font-semibold text-slate-700">Alokasi Pos (Siklus 4 Minggu)</h3>
             </div>
             
             <div id="budgetsList" class="space-y-4">
@@ -48,7 +48,7 @@
             { id: 'jaga', name: 'Jaga-jaga', target: 240000, suggest: 60000 }
         ];
 
-        // Menggunakan key V3 agar tidak bentrok dengan data sebelumnya
+        // Tetap menggunakan key V3 agar data saldo saat ini tidak hilang
         let state = JSON.parse(localStorage.getItem('financeTrackerV3')) || {
             unallocated: 0,
             balances: budgetConfig.reduce((acc, item) => ({ ...acc, [item.id]: 0 }), {})
@@ -63,12 +63,10 @@
             render();
         };
 
-        // Fungsi Input Nominal Bebas
         const addSalary = () => {
             const amountStr = prompt("Masukkan nominal uang yang diterima:");
             if (!amountStr) return;
 
-            // Membersihkan karakter non-angka
             const amount = parseInt(amountStr.replace(/[^0-9]/g, ''));
             
             if (isNaN(amount) || amount <= 0) {
@@ -139,13 +137,19 @@
 
                 return `
                     <div class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-                        <div class="flex justify-between items-start mb-2">
-                            <div>
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex-1">
                                 <h4 class="font-bold text-slate-800 text-sm">${item.name}</h4>
-                                <span class="text-xs text-slate-500">Target: ${formatRp(item.target)}</span>
+                                <span class="text-[10px] font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 inline-block mt-1">
+                                    Saran setor: ${formatRp(item.suggest)}
+                                </span>
                             </div>
-                            <div class="text-right">
-                                <span class="font-bold text-slate-800 block text-sm">${formatRp(balance)}</span>
+                            <div class="text-right pl-2">
+                                <span class="text-[10px] text-slate-500 block uppercase tracking-wider font-semibold mb-0.5">Terkumpul</span>
+                                <span class="font-bold text-slate-800 text-sm leading-none">${formatRp(balance)}</span>
+                                <div class="border-t border-slate-100 mt-1 pt-1">
+                                    <span class="text-[11px] text-slate-400 font-medium">/ ${formatRp(item.target)}</span>
+                                </div>
                             </div>
                         </div>
                         
